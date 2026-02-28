@@ -330,14 +330,19 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
     { id: 'oil painting', label: 'Oil Painting' },
     { id: 'cinematic', label: 'Cinematic' },
     { id: 'anime', label: 'Anime' },
+    { id: 'cyberpunk', label: 'Cyberpunk' },
+    { id: 'watercolor', label: 'Watercolor' },
+    { id: 'sketch', label: 'Sketch' },
+    { id: '3d render', label: '3D Render' },
+    { id: 'pixel art', label: 'Pixel Art' },
   ];
 
   const aspectRatios = [
-    { id: '1:1', label: '1:1' },
-    { id: '16:9', label: '16:9' },
-    { id: '9:16', label: '9:16' },
-    { id: '4:3', label: '4:3' },
-    { id: '3:4', label: '3:4' },
+    { id: '1:1', label: 'Square (1:1)' },
+    { id: '16:9', label: 'Widescreen (16:9)' },
+    { id: '9:16', label: 'Vertical (9:16)' },
+    { id: '4:3', label: 'Landscape (4:3)' },
+    { id: '3:4', label: 'Portrait (3:4)' },
   ];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -643,6 +648,13 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
                         type="range" min="0" max="200" value={brightness} onChange={(e) => setBrightness(Number(e.target.value))}
                         className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
                       />
+                      <div 
+                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
+                        style={{ left: `${(brightness / 200) * 100}%` }}
+                      >
+                        {brightness}%
+                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
+                      </div>
                     </div>
                   </div>
                   
@@ -671,6 +683,13 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
                         type="range" min="0" max="200" value={contrast} onChange={(e) => setContrast(Number(e.target.value))}
                         className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
                       />
+                      <div 
+                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
+                        style={{ left: `${(contrast / 200) * 100}%` }}
+                      >
+                        {contrast}%
+                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
+                      </div>
                     </div>
                   </div>
 
@@ -699,6 +718,13 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
                         type="range" min="100" max="300" value={scale} onChange={(e) => setScale(Number(e.target.value))}
                         className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
                       />
+                      <div 
+                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
+                        style={{ left: `${((scale - 100) / 200) * 100}%` }}
+                      >
+                        {scale}%
+                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
