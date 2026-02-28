@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Signal, Wifi, Battery, Edit3, Film, Sparkles, ChevronUp, ChevronDown, ChevronRight, Home, Wand2, Compass, User, Bot, History, Zap, UserCheck, Expand, X, Loader2, Download } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Signal, Wifi, Battery, Edit3, Film, Sparkles, ChevronUp, ChevronDown, ChevronRight, Home, Wand2, Compass, User, Bot, History, Zap, UserCheck, Expand, X, Loader2, Download, ImagePlus, RotateCcw, RotateCw, Sun, Contrast, Crop } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -312,6 +312,48 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [referenceImage, setReferenceImage] = useState<{ data: string, mimeType: string, url: string } | null>(null);
+  const [style, setStyle] = useState('photorealistic');
+  const [aspectRatio, setAspectRatio] = useState('1:1');
+  
+  // Editing states
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [rotation, setRotation] = useState(0);
+  const [scale, setScale] = useState(100);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const styles = [
+    { id: 'photorealistic', label: 'Photorealistic' },
+    { id: 'cartoon', label: 'Cartoon' },
+    { id: 'oil painting', label: 'Oil Painting' },
+    { id: 'cinematic', label: 'Cinematic' },
+    { id: 'anime', label: 'Anime' },
+  ];
+
+  const aspectRatios = [
+    { id: '1:1', label: '1:1' },
+    { id: '16:9', label: '16:9' },
+    { id: '9:16', label: '9:16' },
+    { id: '4:3', label: '4:3' },
+    { id: '3:4', label: '3:4' },
+  ];
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = (reader.result as string).split(',')[1];
+      setReferenceImage({
+        data: base64String,
+        mimeType: file.type,
+        url: URL.createObjectURL(file)
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -319,18 +361,35 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
     setIsGenerating(true);
     setError(null);
     setGeneratedImage(null);
+    setBrightness(100);
+    setContrast(100);
+    setRotation(0);
+    setScale(100);
     
     try {
       const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY });
+      
+      const parts: any[] = [];
+      if (referenceImage) {
+        parts.push({
+          inlineData: {
+            data: referenceImage.data,
+            mimeType: referenceImage.mimeType
+          }
+        });
+      }
+      
+      const finalPrompt = `${prompt}, style: ${style}`;
+      parts.push({ text: finalPrompt });
+
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: {
-          parts: [
-            {
-              text: prompt,
-            },
-          ],
-        },
+        contents: { parts },
+        config: {
+          imageConfig: {
+            aspectRatio: aspectRatio,
+          }
+        }
       });
       
       let imageUrl = null;
@@ -355,12 +414,50 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
     }
   };
 
+  const handleDownload = () => {
+    if (!generatedImage) return;
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Set canvas dimensions based on rotation
+      if (rotation % 180 !== 0) {
+        canvas.width = img.height;
+        canvas.height = img.width;
+      } else {
+        canvas.width = img.width;
+        canvas.height = img.height;
+      }
+      
+      if (ctx) {
+        // Apply filters
+        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+        
+        // Move to center, rotate, scale, then draw
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.scale(scale / 100, scale / 100);
+        
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+        
+        // Download
+        const link = document.createElement('a');
+        link.download = 'ai-generated-photo.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+    };
+    img.src = generatedImage;
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-sm overflow-hidden border border-white/10 shadow-2xl">
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
+      <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-sm overflow-hidden border border-white/10 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <Sparkles className="text-blue-500" size={20} />
             AI Photo Generator
@@ -370,9 +467,38 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
           </button>
         </div>
         
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 overflow-y-auto">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">What do you want to see?</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-slate-300">What do you want to see?</label>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-2 py-1 rounded-lg"
+              >
+                <ImagePlus size={14} />
+                {referenceImage ? 'Change Image' : 'Add Image'}
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+            </div>
+            
+            {referenceImage && (
+              <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-white/20 mb-2 group">
+                <img src={referenceImage.url} alt="Reference" className="w-full h-full object-cover" />
+                <button 
+                  onClick={() => setReferenceImage(null)}
+                  className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={16} className="text-white" />
+                </button>
+              </div>
+            )}
+
             <div className="relative">
               <div className="absolute top-3 left-3 text-slate-500">
                 <Wand2 size={18} />
@@ -385,6 +511,44 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Style</label>
+            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+              {styles.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setStyle(s.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
+                    style === s.id 
+                      ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' 
+                      : 'bg-[#2A2A2A] text-slate-400 border-transparent hover:bg-[#333]'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Aspect Ratio</label>
+            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+              {aspectRatios.map((ar) => (
+                <button
+                  key={ar.id}
+                  onClick={() => setAspectRatio(ar.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
+                    aspectRatio === ar.id 
+                      ? 'bg-purple-500/20 text-purple-400 border-purple-500/50' 
+                      : 'bg-[#2A2A2A] text-slate-400 border-transparent hover:bg-[#333]'
+                  }`}
+                >
+                  {ar.label}
+                </button>
+              ))}
+            </div>
+          </div>
           
           {error && (
             <div className="text-red-400 text-sm bg-red-400/10 p-3 rounded-xl border border-red-400/20">
@@ -393,17 +557,151 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
           )}
           
           {generatedImage && (
-            <div className="rounded-xl overflow-hidden border border-white/10 aspect-square relative group">
-              <img src={generatedImage} alt="Generated AI Photo" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <a 
-                  href={generatedImage} 
-                  download="ai-generated-photo.png"
-                  className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2 rounded-full font-medium flex items-center gap-2 transition-colors"
-                >
-                  <Download size={18} />
-                  Save Photo
-                </a>
+            <div className="space-y-4">
+              <div className={`rounded-xl overflow-hidden border border-white/10 relative group bg-black/50 ${
+                aspectRatio === '16:9' ? 'aspect-video' :
+                aspectRatio === '9:16' ? 'aspect-[9/16]' :
+                aspectRatio === '4:3' ? 'aspect-[4/3]' :
+                aspectRatio === '3:4' ? 'aspect-[3/4]' :
+                'aspect-square'
+              }`}>
+                <img 
+                  src={generatedImage} 
+                  alt="Generated AI Photo" 
+                  className="w-full h-full object-cover transition-all duration-200" 
+                  style={{
+                    filter: `brightness(${brightness}%) contrast(${contrast}%)`,
+                    transform: `rotate(${rotation}deg) scale(${scale / 100})`,
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button 
+                    onClick={handleDownload}
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2 rounded-full font-medium flex items-center gap-2 transition-colors"
+                  >
+                    <Download size={18} />
+                    Save Photo
+                  </button>
+                </div>
+              </div>
+
+              {/* Editing Tools */}
+              <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-white/10 shadow-inner space-y-5 mt-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Edit3 size={16} className="text-blue-400" />
+                    Adjustments
+                  </h4>
+                  <div className="flex gap-2 items-center">
+                    <button 
+                      onClick={() => { setBrightness(100); setContrast(100); setScale(100); setRotation(0); }}
+                      className="text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/5"
+                    >
+                      Reset
+                    </button>
+                    <div className="w-px h-4 bg-white/10 mx-1"></div>
+                    <button 
+                      onClick={() => setRotation(r => r - 90)}
+                      className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-slate-300 transition-colors"
+                      title="Rotate Left"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                    <button 
+                      onClick={() => setRotation(r => r + 90)}
+                      className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-slate-300 transition-colors"
+                      title="Rotate Right"
+                    >
+                      <RotateCw size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
+                      <span className="flex items-center gap-1.5"><Sun size={14} className="text-slate-400" /> Brightness</span>
+                      <motion.span 
+                        key={brightness}
+                        initial={{ scale: 1.2, color: '#60A5FA' }}
+                        animate={{ scale: 1, color: '#94A3B8' }}
+                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
+                      >
+                        {brightness}%
+                      </motion.span>
+                    </div>
+                    <div className="relative flex items-center h-4 group">
+                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-blue-500 rounded-full" 
+                          initial={false}
+                          animate={{ width: `${(brightness / 200) * 100}%` }}
+                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
+                        />
+                      </div>
+                      <input 
+                        type="range" min="0" max="200" value={brightness} onChange={(e) => setBrightness(Number(e.target.value))}
+                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
+                      <span className="flex items-center gap-1.5"><Contrast size={14} className="text-slate-400" /> Contrast</span>
+                      <motion.span 
+                        key={contrast}
+                        initial={{ scale: 1.2, color: '#60A5FA' }}
+                        animate={{ scale: 1, color: '#94A3B8' }}
+                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
+                      >
+                        {contrast}%
+                      </motion.span>
+                    </div>
+                    <div className="relative flex items-center h-4 group">
+                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-blue-500 rounded-full" 
+                          initial={false}
+                          animate={{ width: `${(contrast / 200) * 100}%` }}
+                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
+                        />
+                      </div>
+                      <input 
+                        type="range" min="0" max="200" value={contrast} onChange={(e) => setContrast(Number(e.target.value))}
+                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
+                      <span className="flex items-center gap-1.5"><Crop size={14} className="text-slate-400" /> Zoom</span>
+                      <motion.span 
+                        key={scale}
+                        initial={{ scale: 1.2, color: '#60A5FA' }}
+                        animate={{ scale: 1, color: '#94A3B8' }}
+                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
+                      >
+                        {scale}%
+                      </motion.span>
+                    </div>
+                    <div className="relative flex items-center h-4 group">
+                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-blue-500 rounded-full" 
+                          initial={false}
+                          animate={{ width: `${((scale - 100) / 200) * 100}%` }}
+                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
+                        />
+                      </div>
+                      <input 
+                        type="range" min="100" max="300" value={scale} onChange={(e) => setScale(Number(e.target.value))}
+                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -411,7 +709,7 @@ const AIPhotoModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => voi
           <button 
             onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim()}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 shrink-0 mt-2"
           >
             {isGenerating ? (
               <>
