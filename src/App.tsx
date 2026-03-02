@@ -47,15 +47,15 @@ const TopBar = () => (
   </div>
 );
 
-const ActionButtons = ({ showMore, onMoreClick, onAIPhotoClick }: { showMore: boolean, onMoreClick: () => void, onAIPhotoClick: () => void }) => (
+const ActionButtons = ({ showMore, onMoreClick, onAIPhotoClick, onEditClick, onAIVideoClick }: { showMore: boolean, onMoreClick: () => void, onAIPhotoClick: () => void, onEditClick: () => void, onAIVideoClick: () => void }) => (
   <header className="grid grid-cols-4 gap-3 mt-2">
-    <button className="flex flex-col items-center justify-center aspect-square bg-[#1A1A1A] rounded-2xl hover:bg-white/10 transition-all group">
+    <button onClick={onEditClick} className="flex flex-col items-center justify-center aspect-square bg-[#1A1A1A] rounded-2xl hover:bg-white/10 transition-all group">
       <div className="bg-slate-800 p-2 rounded-xl mb-2 group-active:scale-95 transition-transform">
         <Edit3 className="text-[#7C3AED] transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" size={24} />
       </div>
       <span className="text-xs font-medium">Edit</span>
     </button>
-    <button className="flex flex-col items-center justify-center aspect-square bg-[#1A1A1A] rounded-2xl hover:bg-white/10 transition-all group">
+    <button onClick={onAIVideoClick} className="flex flex-col items-center justify-center aspect-square bg-[#1A1A1A] rounded-2xl hover:bg-white/10 transition-all group">
       <div className="bg-slate-800 p-2 rounded-xl mb-2 group-active:scale-95 transition-transform">
         <Film className="text-pink-500 transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110" size={24} />
       </div>
@@ -146,6 +146,19 @@ const MoreTools = ({ onToolClick }: { onToolClick: (toolName: string) => void })
         <div className="text-left relative z-10">
           <div className="text-sm font-bold text-white leading-tight mb-1">AI Flash</div>
           <div className="text-[10px] font-medium text-slate-400 group-hover:text-amber-200 transition-colors">Instant lighting fix</div>
+        </div>
+      </button>
+      <button 
+        onClick={() => onToolClick('Auto Enhance')} 
+        className="group relative flex flex-col items-start gap-3 bg-gradient-to-br from-[#1A1A1A] to-[#111] p-4 rounded-[20px] border border-white/5 hover:border-emerald-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_20px_-8px_rgba(16,185,129,0.3)] overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"></div>
+        <div className="bg-emerald-500/20 p-2.5 rounded-xl text-emerald-400 group-hover:scale-110 transition-transform duration-300">
+          <Wand2 size={22} />
+        </div>
+        <div className="text-left relative z-10">
+          <div className="text-sm font-bold text-white leading-tight mb-1">Auto<br/>Enhance</div>
+          <div className="text-[10px] font-medium text-slate-400 group-hover:text-emerald-200 transition-colors">Fix lighting & color</div>
         </div>
       </button>
     </div>
@@ -325,6 +338,102 @@ const BottomNav = ({ onAgentClick }: { onAgentClick: () => void }) => (
     </div>
   </nav>
 );
+
+const Slider = ({ 
+  label, 
+  icon: Icon, 
+  value, 
+  min, 
+  max, 
+  onChange, 
+  formatValue = (v) => `${v}%`,
+  color = 'blue',
+  trackBackground,
+  tooltip
+}: { 
+  label: string, 
+  icon: any, 
+  value: number, 
+  min: number, 
+  max: number, 
+  onChange: (v: number) => void,
+  formatValue?: (v: number) => string,
+  color?: string,
+  trackBackground?: string,
+  tooltip?: string
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const percentage = ((value - min) / (max - min)) * 100;
+
+  const colorClasses: Record<string, { bg: string, text: string, border: string, triangle: string }> = {
+    blue: { bg: 'bg-blue-500', text: 'text-blue-500', border: 'border-blue-500', triangle: 'border-t-blue-500' },
+    slate: { bg: 'bg-slate-500', text: 'text-slate-500', border: 'border-slate-500', triangle: 'border-t-slate-500' },
+    orange: { bg: 'bg-orange-500', text: 'text-orange-500', border: 'border-orange-500', triangle: 'border-t-orange-500' },
+    yellow: { bg: 'bg-yellow-500', text: 'text-yellow-500', border: 'border-yellow-500', triangle: 'border-t-yellow-500' },
+    emerald: { bg: 'bg-emerald-500', text: 'text-emerald-500', border: 'border-emerald-500', triangle: 'border-t-emerald-500' },
+    white: { bg: 'bg-white/40', text: 'text-white', border: 'border-white', triangle: 'border-t-white/40' },
+  };
+
+  const activeColor = colorClasses[color] || colorClasses.blue;
+
+  return (
+    <div className="space-y-2" title={tooltip}>
+      <div className="flex items-center justify-between text-xs font-medium text-slate-300">
+        <span className="flex items-center gap-1.5">
+          <Icon size={14} className={isDragging ? activeColor.text : "text-slate-400"} style={{ transition: 'color 0.2s' }} /> 
+          {label}
+        </span>
+        <motion.span 
+          key={value}
+          initial={{ scale: 1.2, color: '#fff' }}
+          animate={{ scale: 1, color: isDragging ? '#fff' : '#94A3B8' }}
+          className={`bg-black/50 px-2 py-0.5 rounded border ${isDragging ? 'border-white/20' : 'border-white/5'} w-12 text-center transition-colors`}
+        >
+          {formatValue(value)}
+        </motion.span>
+      </div>
+      <div className="relative flex items-center h-4 group">
+        <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
+          {trackBackground && (
+            <div 
+              className="absolute inset-0 opacity-30"
+              style={{ background: trackBackground }}
+            />
+          )}
+          <motion.div 
+            className={`h-full ${activeColor.bg} rounded-full relative z-10`} 
+            initial={false}
+            animate={{ width: `${percentage}%` }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
+          />
+        </div>
+        <input 
+          type="range" min={min} max={max} value={value} 
+          onChange={(e) => onChange(Number(e.target.value))}
+          onMouseDown={() => setIsDragging(true)}
+          onMouseUp={() => setIsDragging(false)}
+          onTouchStart={() => setIsDragging(true)}
+          onTouchEnd={() => setIsDragging(false)}
+          className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
+        />
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.8 }}
+              className={`absolute -top-10 ${activeColor.bg} text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg pointer-events-none transform -translate-x-1/2 z-20`}
+              style={{ left: `${percentage}%` }}
+            >
+              {formatValue(value)}
+              <div className={`absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] ${activeColor.triangle}`}></div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
 
 const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen: boolean, onClose: () => void, initialPrompt?: string, initialImage?: { data: string, mimeType: string, url: string } | null }) => {
   const [prompt, setPrompt] = useState('');
@@ -551,6 +660,16 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
     applyAIEffect("Enhance this image with a bright camera flash effect. Make the lighting pop, increase clarity, and give it a professional studio flash photography look while keeping the exact same subject and composition.");
   };
 
+  const handleAIAdjust = (type: string) => {
+    const prompts: Record<string, string> = {
+      brightness: "Automatically adjust and fix the brightness and exposure of this image. Make it perfectly lit while keeping the exact same subject and composition.",
+      contrast: "Automatically enhance the contrast of this image. Make the darks richer and the lights brighter without losing detail, while keeping the exact same subject and composition.",
+      saturation: "Automatically color correct and enhance the saturation of this image. Make the colors vibrant and natural while keeping the exact same subject and composition.",
+      sharpness: "Automatically sharpen this image. Enhance the details, clarity, and crispness without adding noise, while keeping the exact same subject and composition."
+    };
+    applyAIEffect(prompts[type]);
+  };
+
   const applyCrop = () => {
     if (!completedCrop || !imgRef.current) return;
     
@@ -681,6 +800,7 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
               <button 
                 onClick={() => fileInputRef.current?.click()}
                 className="text-xs flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-2 py-1 rounded-lg"
+                title="Upload a reference image"
               >
                 <ImagePlus size={14} />
                 {referenceImage ? 'Change Image' : 'Add Image'}
@@ -822,6 +942,7 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                       <button 
                         onClick={handleDownload}
                         className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2 rounded-full font-medium flex items-center gap-2 transition-colors"
+                        title="Download the edited photo"
                       >
                         <Download size={18} />
                         Save Photo
@@ -843,6 +964,7 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                       <button 
                         onClick={applyCrop}
                         className="text-xs bg-blue-500 hover:bg-blue-600 text-white transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
+                        title="Apply current crop selection"
                       >
                         <Check size={14} />
                         Apply Crop
@@ -851,6 +973,7 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                       <button 
                         onClick={() => setIsCropping(true)}
                         className="text-xs bg-white/10 hover:bg-white/20 text-white transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
+                        title="Crop the image to a specific area"
                       >
                         <Crop size={14} />
                         Crop
@@ -859,13 +982,13 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                     <button 
                       onClick={handleRemoveBackground}
                       disabled={isRemovingBg}
-                      className="text-xs bg-white/10 hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
-                      title="Remove Background"
+                      className="text-xs bg-purple-500/20 hover:bg-purple-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-purple-400 transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium border border-purple-500/20"
+                      title="AI Background Removal - Automatically remove the background"
                     >
                       {isRemovingBg ? (
                         <Loader2 size={14} className="animate-spin" />
                       ) : (
-                        <Scissors size={14} />
+                        <Sparkles size={14} />
                       )}
                       <span className="hidden sm:inline">Remove BG</span>
                     </button>
@@ -873,7 +996,7 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                       onClick={handleAIFlash}
                       disabled={isGenerating}
                       className="text-xs bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-amber-400 transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
-                      title="AI Flash"
+                      title="AI Flash - Enhance lighting and clarity"
                     >
                       {isGenerating ? (
                         <Loader2 size={14} className="animate-spin" />
@@ -886,6 +1009,7 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                     <button 
                       onClick={() => { setBrightness(100); setContrast(100); setHue(0); setSaturation(100); setSharpness(0); setShadows(0); setMidtones(0); setHighlights(0); setScale(100); setRotation(0); setSelectedPreset('none'); }}
                       className="text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/5"
+                      title="Reset all manual adjustments to default"
                     >
                       Reset
                     </button>
@@ -893,14 +1017,14 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                     <button 
                       onClick={() => setRotation(r => r - 90)}
                       className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-slate-300 transition-colors"
-                      title="Rotate Left"
+                      title="Rotate Left 90 degrees"
                     >
                       <RotateCcw size={14} />
                     </button>
                     <button 
                       onClick={() => setRotation(r => r + 90)}
                       className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-slate-300 transition-colors"
-                      title="Rotate Right"
+                      title="Rotate Right 90 degrees"
                     >
                       <RotateCw size={14} />
                     </button>
@@ -944,314 +1068,165 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><Sun size={14} className="text-slate-400" /> Brightness</span>
-                      <motion.span 
-                        key={brightness}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
+                  <div className="pt-2 pb-1 border-t border-white/5">
+                    <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">AI Auto-Adjustments</h5>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={() => handleAIAdjust('brightness')}
+                        disabled={isGenerating}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                        title="Automatically fix brightness and exposure"
                       >
-                        {brightness}%
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-blue-500 rounded-full" 
-                          initial={false}
-                          animate={{ width: `${(brightness / 200) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="0" max="200" value={brightness} onChange={(e) => setBrightness(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                      <div 
-                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
-                        style={{ left: `${(brightness / 200) * 100}%` }}
+                        <Sun size={14} className="text-amber-400" />
+                        Auto Brightness
+                      </button>
+                      <button 
+                        onClick={() => handleAIAdjust('contrast')}
+                        disabled={isGenerating}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                        title="Automatically enhance contrast and depth"
                       >
-                        {brightness}%
-                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
-                      </div>
+                        <Contrast size={14} className="text-blue-400" />
+                        Auto Contrast
+                      </button>
+                      <button 
+                        onClick={() => handleAIAdjust('saturation')}
+                        disabled={isGenerating}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                        title="Automatically color correct and enhance vibrancy"
+                      >
+                        <Palette size={14} className="text-pink-400" />
+                        Auto Saturation
+                      </button>
+                      <button 
+                        onClick={() => handleAIAdjust('sharpness')}
+                        disabled={isGenerating}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                        title="Automatically sharpen and enhance details"
+                      >
+                        <Activity size={14} className="text-emerald-400" />
+                        Auto Sharpness
+                      </button>
                     </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><Contrast size={14} className="text-slate-400" /> Contrast</span>
-                      <motion.span 
-                        key={contrast}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {contrast}%
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-blue-500 rounded-full" 
-                          initial={false}
-                          animate={{ width: `${(contrast / 200) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="0" max="200" value={contrast} onChange={(e) => setContrast(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                      <div 
-                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
-                        style={{ left: `${(contrast / 200) * 100}%` }}
-                      >
-                        {contrast}%
-                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
-                      </div>
-                    </div>
+
+                  <div className="pt-2 pb-1 border-t border-white/5 mt-4">
+                    <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">Manual Adjustments</h5>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Slider 
+                      label="Brightness" 
+                      icon={Sun} 
+                      value={brightness} 
+                      min={0} 
+                      max={200} 
+                      onChange={setBrightness} 
+                      tooltip="Adjust the overall lightness or darkness of the image"
+                    />
+                    
+                    <Slider 
+                      label="Contrast" 
+                      icon={Contrast} 
+                      value={contrast} 
+                      min={0} 
+                      max={200} 
+                      onChange={setContrast} 
+                      tooltip="Adjust the difference between light and dark areas"
+                    />
                   </div>
 
                   <div className="pt-2 pb-1 border-t border-white/5 mt-4">
                     <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">Color Balance</h5>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><Moon size={14} className="text-slate-400" /> Shadows</span>
-                      <motion.span 
-                        key={shadows}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {shadows > 0 ? `+${shadows}` : shadows}
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-slate-500 rounded-full" 
-                          initial={false}
-                          animate={{ width: `${((shadows + 100) / 200) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="-100" max="100" value={shadows} onChange={(e) => setShadows(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                    </div>
-                  </div>
+                  <div className="space-y-4">
+                    <Slider 
+                      label="Shadows" 
+                      icon={Moon} 
+                      value={shadows} 
+                      min={-100} 
+                      max={100} 
+                      onChange={setShadows} 
+                      formatValue={(v) => v > 0 ? `+${v}` : `${v}`}
+                      color="slate"
+                      tooltip="Adjust the brightness of the darkest areas"
+                    />
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><SunDim size={14} className="text-slate-400" /> Midtones</span>
-                      <motion.span 
-                        key={midtones}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {midtones > 0 ? `+${midtones}` : midtones}
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-orange-500 rounded-full" 
-                          initial={false}
-                          animate={{ width: `${((midtones + 100) / 200) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="-100" max="100" value={midtones} onChange={(e) => setMidtones(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                    </div>
-                  </div>
+                    <Slider 
+                      label="Midtones" 
+                      icon={SunDim} 
+                      value={midtones} 
+                      min={-100} 
+                      max={100} 
+                      onChange={setMidtones} 
+                      formatValue={(v) => v > 0 ? `+${v}` : `${v}`}
+                      color="orange"
+                      tooltip="Adjust the brightness of the middle tones"
+                    />
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><SunMedium size={14} className="text-slate-400" /> Highlights</span>
-                      <motion.span 
-                        key={highlights}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {highlights > 0 ? `+${highlights}` : highlights}
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-yellow-500 rounded-full" 
-                          initial={false}
-                          animate={{ width: `${((highlights + 100) / 200) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="-100" max="100" value={highlights} onChange={(e) => setHighlights(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                    </div>
+                    <Slider 
+                      label="Highlights" 
+                      icon={SunMedium} 
+                      value={highlights} 
+                      min={-100} 
+                      max={100} 
+                      onChange={setHighlights} 
+                      formatValue={(v) => v > 0 ? `+${v}` : `${v}`}
+                      color="yellow"
+                      tooltip="Adjust the brightness of the lightest areas"
+                    />
                   </div>
 
                   <div className="pt-2 pb-1 border-t border-white/5 mt-4">
                     <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">Color & Detail</h5>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><Palette size={14} className="text-slate-400" /> Hue (Color Shift)</span>
-                      <motion.span 
-                        key={hue}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {hue}°
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <div 
-                          className="absolute inset-0 opacity-30"
-                          style={{ background: 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)' }}
-                        />
-                        <motion.div 
-                          className="h-full bg-white/40 rounded-full relative z-10" 
-                          initial={false}
-                          animate={{ width: `${(hue / 360) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="0" max="360" value={hue} onChange={(e) => setHue(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                      <div 
-                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
-                        style={{ left: `${(hue / 360) * 100}%` }}
-                      >
-                        {hue}°
-                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
-                      </div>
-                    </div>
-                  </div>
+                  <div className="space-y-4">
+                    <Slider 
+                      label="Hue (Color Shift)" 
+                      icon={Palette} 
+                      value={hue} 
+                      min={0} 
+                      max={360} 
+                      onChange={setHue} 
+                      formatValue={(v) => `${v}°`}
+                      color="white"
+                      trackBackground="linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)"
+                      tooltip="Shift the overall colors of the image"
+                    />
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><Droplets size={14} className="text-slate-400" /> Saturation (Intensity)</span>
-                      <motion.span 
-                        key={saturation}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {saturation}%
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <div 
-                          className="absolute inset-0 opacity-20"
-                          style={{ background: 'linear-gradient(to right, #4b5563, #3b82f6, #1d4ed8)' }}
-                        />
-                        <motion.div 
-                          className="h-full bg-blue-500 rounded-full relative z-10" 
-                          initial={false}
-                          animate={{ width: `${(saturation / 200) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="0" max="200" value={saturation} onChange={(e) => setSaturation(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                      <div 
-                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
-                        style={{ left: `${(saturation / 200) * 100}%` }}
-                      >
-                        {saturation}%
-                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
-                      </div>
-                    </div>
-                  </div>
+                    <Slider 
+                      label="Saturation (Intensity)" 
+                      icon={Droplets} 
+                      value={saturation} 
+                      min={0} 
+                      max={200} 
+                      onChange={setSaturation} 
+                      trackBackground="linear-gradient(to right, #4b5563, #3b82f6, #1d4ed8)"
+                      tooltip="Adjust the intensity and purity of colors"
+                    />
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><Activity size={14} className="text-slate-400" /> Sharpness (Clarity)</span>
-                      <motion.span 
-                        key={sharpness}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {sharpness}%
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-emerald-500 rounded-full" 
-                          initial={false}
-                          animate={{ width: `${sharpness}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="0" max="100" value={sharpness} onChange={(e) => setSharpness(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                      <div 
-                        className="absolute -top-8 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
-                        style={{ left: `${sharpness}%` }}
-                      >
-                        {sharpness}%
-                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-emerald-500"></div>
-                      </div>
-                    </div>
-                  </div>
+                    <Slider 
+                      label="Sharpness (Clarity)" 
+                      icon={Activity} 
+                      value={sharpness} 
+                      min={0} 
+                      max={100} 
+                      onChange={setSharpness} 
+                      color="emerald"
+                      tooltip="Enhance the clarity and detail of edges"
+                    />
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                      <span className="flex items-center gap-1.5"><Crop size={14} className="text-slate-400" /> Zoom</span>
-                      <motion.span 
-                        key={scale}
-                        initial={{ scale: 1.2, color: '#60A5FA' }}
-                        animate={{ scale: 1, color: '#94A3B8' }}
-                        className="bg-black/50 px-2 py-0.5 rounded border border-white/5 w-12 text-center"
-                      >
-                        {scale}%
-                      </motion.span>
-                    </div>
-                    <div className="relative flex items-center h-4 group">
-                      <div className="absolute w-full h-1.5 bg-white/10 rounded-full pointer-events-none overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-blue-500 rounded-full" 
-                          initial={false}
-                          animate={{ width: `${((scale - 100) / 200) * 100}%` }}
-                          transition={{ type: 'spring', bounce: 0, duration: 0.1 }}
-                        />
-                      </div>
-                      <input 
-                        type="range" min="100" max="300" value={scale} onChange={(e) => setScale(Number(e.target.value))}
-                        className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
-                      />
-                      <div 
-                        className="absolute -top-8 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none transform -translate-x-1/2"
-                        style={{ left: `${((scale - 100) / 200) * 100}%` }}
-                      >
-                        {scale}%
-                        <div className="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-blue-500"></div>
-                      </div>
-                    </div>
+                    <Slider 
+                      label="Zoom" 
+                      icon={Crop} 
+                      value={scale} 
+                      min={100} 
+                      max={300} 
+                      onChange={setScale} 
+                      tooltip="Zoom in or out of the image"
+                    />
                   </div>
                 </div>
               </div>
@@ -1262,6 +1237,7 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
             onClick={handleGenerate}
             disabled={isGenerating || !prompt.trim()}
             className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 shrink-0 mt-2"
+            title="Generate a new photo based on prompt and settings"
           >
             {isGenerating ? (
               <>
@@ -1428,26 +1404,72 @@ export default function App() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setIsUploading(false);
-            setUploadProgress(0);
-            // Here you would typically handle the uploaded file
-            alert('Photo uploaded successfully!');
-          }, 500);
-          return 100;
-        }
-        return prev + Math.floor(Math.random() * 15) + 5;
-      });
-    }, 200);
+    const reader = new FileReader();
+    reader.onloadstart = () => {
+      // Simulate upload progress
+      const interval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + Math.floor(Math.random() * 15) + 5;
+        });
+      }, 100);
+      
+      // Store interval ID to clear it later if needed
+      (reader as any).progressInterval = interval;
+    };
+
+    reader.onloadend = () => {
+      clearInterval((reader as any).progressInterval);
+      setUploadProgress(100);
+      
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+        
+        const base64String = (reader.result as string).split(',')[1];
+        setInitialModalImage({
+          data: base64String,
+          mimeType: file.type,
+          url: URL.createObjectURL(file)
+        });
+        setInitialModalPrompt('');
+        setIsAIPhotoModalOpen(true);
+      }, 500);
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleToolClick = (toolName: string) => {
-    alert(`Feature '${toolName}' is ready for implementation!`);
+    let prompt = '';
+    switch (toolName) {
+      case 'Restore Old Function':
+        prompt = 'Restore this old photo, fix scratches, enhance details, and colorize it if it is black and white.';
+        break;
+      case 'Enhance Quality':
+        prompt = 'Upscale and enhance the quality of this image to 4K resolution. Make it extremely sharp, detailed, and high definition.';
+        break;
+      case 'Adjust Body':
+        prompt = 'Retouch and adjust the body and face in this image to look professional and aesthetically pleasing.';
+        break;
+      case 'Outpaint/Inpaint':
+        prompt = 'Expand the borders of this image seamlessly, adding more context to the background.';
+        break;
+      case 'AI Flash':
+        prompt = 'Enhance this image with a bright camera flash effect. Make the lighting pop, increase clarity, and give it a professional studio flash photography look.';
+        break;
+      case 'Auto Enhance':
+        prompt = 'Automatically enhance the overall quality of this photo. Adjust the lighting, improve sharpness, and correct the color balance to make it look professional and vibrant.';
+        break;
+      default:
+        prompt = `Apply ${toolName} effect to the image.`;
+    }
+    setInitialModalPrompt(prompt);
+    setInitialModalImage(null);
+    setIsAIPhotoModalOpen(true);
   };
 
   return (
@@ -1461,6 +1483,16 @@ export default function App() {
               showMore={showMoreTools} 
               onMoreClick={() => setShowMoreTools(!showMoreTools)} 
               onAIPhotoClick={() => setIsAIPhotoModalOpen(true)}
+              onEditClick={() => {
+                setInitialModalPrompt('');
+                setInitialModalImage(null);
+                setIsAIPhotoModalOpen(true);
+              }}
+              onAIVideoClick={() => {
+                setInitialModalPrompt('Generate a cinematic, high-quality video frame of a stunning landscape.');
+                setInitialModalImage(null);
+                setIsAIPhotoModalOpen(true);
+              }}
             />
           </div>
           {showMoreTools && <MoreTools onToolClick={handleToolClick} />}
