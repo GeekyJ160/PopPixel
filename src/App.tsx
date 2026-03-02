@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Signal, Wifi, Battery, Edit3, Film, Sparkles, ChevronUp, ChevronDown, ChevronRight, Home, Wand2, Compass, User, Bot, History, Zap, UserCheck, Expand, X, Loader2, Download, ImagePlus, RotateCcw, RotateCw, Sun, Contrast, Crop, Check, Scissors, Palette, Droplets, Activity, Moon, SunMedium, SunDim, Ban } from 'lucide-react';
+import { Signal, Wifi, Battery, Edit3, Film, Sparkles, ChevronUp, ChevronDown, ChevronRight, Home, Wand2, Compass, User, Bot, History, Zap, UserCheck, Expand, X, Loader2, Download, ImagePlus, RotateCcw, RotateCw, Sun, Contrast, Crop, Check, Scissors, Palette, Droplets, Activity, Moon, SunMedium, SunDim, Ban, Maximize } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import ReactCrop, { type Crop as ReactCropType } from 'react-image-crop';
@@ -346,6 +346,7 @@ const Slider = ({
   min, 
   max, 
   onChange, 
+  onChangeEnd,
   formatValue = (v) => `${v}%`,
   color = 'blue',
   trackBackground,
@@ -357,6 +358,7 @@ const Slider = ({
   min: number, 
   max: number, 
   onChange: (v: number) => void,
+  onChangeEnd?: (v: number) => void,
   formatValue?: (v: number) => string,
   color?: string,
   trackBackground?: string,
@@ -411,9 +413,9 @@ const Slider = ({
           type="range" min={min} max={max} value={value} 
           onChange={(e) => onChange(Number(e.target.value))}
           onMouseDown={() => setIsDragging(true)}
-          onMouseUp={() => setIsDragging(false)}
+          onMouseUp={() => { setIsDragging(false); if (onChangeEnd) onChangeEnd(value); }}
           onTouchStart={() => setIsDragging(true)}
-          onTouchEnd={() => setIsDragging(false)}
+          onTouchEnd={() => { setIsDragging(false); if (onChangeEnd) onChangeEnd(value); }}
           className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer z-10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:duration-150 hover:[&::-webkit-slider-thumb]:scale-125 active:[&::-webkit-slider-thumb]:scale-110 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:transition-transform [&::-moz-range-thumb]:duration-150 hover:[&::-moz-range-thumb]:scale-125 active:[&::-moz-range-thumb]:scale-110"
         />
         <AnimatePresence>
@@ -448,6 +450,13 @@ const BODY_ADJUSTMENTS = {
     { id: 'none', label: 'None', icon: <Ban size={24} /> },
     { id: 'peach', label: 'Peach', icon: <User size={24} /> },
     { id: 'bubble', label: 'Bubble', icon: <User size={24} /> },
+  ],
+  shape: [
+    { id: 'none', label: 'None', icon: <Ban size={24} /> },
+    { id: 'slim', label: 'Slim', icon: <User size={24} /> },
+    { id: 'elongate', label: 'Elongate', icon: <User size={24} /> },
+    { id: 'curvy', label: 'Curvy', icon: <User size={24} /> },
+    { id: 'athletic', label: 'Athletic', icon: <User size={24} /> },
   ]
 };
 
@@ -471,6 +480,25 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
         // But referenceImage is for generation. If we want to edit an existing image, 
         // we should probably set generatedImage.
         setGeneratedImage(initialImage.url);
+        
+        setHistory([{
+          generatedImage: initialImage.url,
+          brightness: 100,
+          contrast: 100,
+          hue: 0,
+          saturation: 100,
+          sharpness: 0,
+          shadows: 0,
+          midtones: 0,
+          highlights: 0,
+          rotation: 0,
+          scale: 100,
+          selectedPreset: 'none'
+        }]);
+        setHistoryIndex(0);
+      } else {
+        setHistory([]);
+        setHistoryIndex(-1);
       }
     } else {
       // Reset when closing
@@ -478,6 +506,8 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
       setGeneratedImage(null);
       setReferenceImage(null);
       setError(null);
+      setHistory([]);
+      setHistoryIndex(-1);
     }
   }, [isOpen, initialPrompt, initialImage]);
 
@@ -497,9 +527,69 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
   const [isRemovingBg, setIsRemovingBg] = useState(false);
   const [crop, setCrop] = useState<ReactCropType>();
   const [completedCrop, setCompletedCrop] = useState<ReactCropType | null>(null);
+  const [cropAspectRatio, setCropAspectRatio] = useState<number | undefined>(undefined);
   const imgRef = useRef<HTMLImageElement>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const saveToHistory = (newState: any = {}) => {
+    const currentState = {
+      generatedImage,
+      brightness,
+      contrast,
+      hue,
+      saturation,
+      sharpness,
+      shadows,
+      midtones,
+      highlights,
+      rotation,
+      scale,
+      selectedPreset
+    };
+    const stateToSave = { ...currentState, ...newState };
+    
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(stateToSave);
+      return newHistory;
+    });
+    setHistoryIndex(prev => prev + 1);
+  };
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      const prevState = history[historyIndex - 1];
+      applyState(prevState);
+      setHistoryIndex(historyIndex - 1);
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      const nextState = history[historyIndex + 1];
+      applyState(nextState);
+      setHistoryIndex(historyIndex + 1);
+    }
+  };
+
+  const applyState = (state: any) => {
+    setGeneratedImage(state.generatedImage);
+    setBrightness(state.brightness);
+    setContrast(state.contrast);
+    setHue(state.hue);
+    setSaturation(state.saturation);
+    setSharpness(state.sharpness);
+    setShadows(state.shadows);
+    setMidtones(state.midtones);
+    setHighlights(state.highlights);
+    setRotation(state.rotation);
+    setScale(state.scale);
+    setSelectedPreset(state.selectedPreset);
+  };
 
   const styles = [
     { id: 'photorealistic', label: 'Photorealistic' },
@@ -592,6 +682,20 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
       
       if (imageUrl) {
         setGeneratedImage(imageUrl);
+        saveToHistory({
+          generatedImage: imageUrl,
+          brightness: 100,
+          contrast: 100,
+          hue: 0,
+          saturation: 100,
+          sharpness: 0,
+          shadows: 0,
+          midtones: 0,
+          highlights: 0,
+          rotation: 0,
+          scale: 100,
+          selectedPreset: 'none'
+        });
       } else {
         setError('Failed to generate image. Please try again.');
       }
@@ -659,6 +763,31 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
       
       if (imageUrl) {
         setGeneratedImage(imageUrl);
+        setBrightness(100);
+        setContrast(100);
+        setHue(0);
+        setSaturation(100);
+        setSharpness(0);
+        setShadows(0);
+        setMidtones(0);
+        setHighlights(0);
+        setRotation(0);
+        setScale(100);
+        setSelectedPreset('none');
+        saveToHistory({
+          generatedImage: imageUrl,
+          brightness: 100,
+          contrast: 100,
+          hue: 0,
+          saturation: 100,
+          sharpness: 0,
+          shadows: 0,
+          midtones: 0,
+          highlights: 0,
+          rotation: 0,
+          scale: 100,
+          selectedPreset: 'none'
+        });
       } else {
         setError('Failed to apply effect. Please try again.');
       }
@@ -676,6 +805,125 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
 
   const handleAIFlash = () => {
     applyAIEffect("Enhance this image with a bright camera flash effect. Make the lighting pop, increase clarity, and give it a professional studio flash photography look while keeping the exact same subject and composition.");
+  };
+
+  const handleAIUpscale = async () => {
+    if (!generatedImage) return;
+    
+    // Check for API key selection for 3.1 model
+    if ((window as any).aistudio && (window as any).aistudio.hasSelectedApiKey) {
+      try {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await (window as any).aistudio.openSelectKey();
+          // Assume success to mitigate race condition
+        }
+      } catch (err) {
+        console.error("Error checking API key:", err);
+      }
+    }
+
+    setIsGenerating(true);
+    setError(null);
+    
+    try {
+      // Create a new instance right before the API call to get the latest key
+      const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY });
+      
+      let base64Data = '';
+      let mimeType = 'image/png';
+      
+      if (generatedImage.startsWith('data:')) {
+        base64Data = generatedImage.split(',')[1];
+        mimeType = generatedImage.split(';')[0].split(':')[1];
+      } else if (generatedImage.startsWith('blob:')) {
+        const response = await fetch(generatedImage);
+        const blob = await response.blob();
+        mimeType = blob.type;
+        base64Data = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+          reader.readAsDataURL(blob);
+        }) as string;
+      }
+      
+      const parts = [
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        },
+        { text: "Upscale this image. Increase the resolution, enhance all details, remove any blur or pixelation, and make it highly crisp and high-definition while keeping the exact same subject and composition." }
+      ];
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-image-preview',
+        contents: { parts },
+        config: {
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: "2K"
+          }
+        }
+      });
+      
+      let imageUrl = null;
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const base64EncodeString = part.inlineData.data;
+          imageUrl = `data:image/png;base64,${base64EncodeString}`;
+          break;
+        }
+      }
+      
+      if (imageUrl) {
+        setGeneratedImage(imageUrl);
+        setBrightness(100);
+        setContrast(100);
+        setHue(0);
+        setSaturation(100);
+        setSharpness(0);
+        setShadows(0);
+        setMidtones(0);
+        setHighlights(0);
+        setRotation(0);
+        setScale(100);
+        setSelectedPreset('none');
+        saveToHistory({
+          generatedImage: imageUrl,
+          brightness: 100,
+          contrast: 100,
+          hue: 0,
+          saturation: 100,
+          sharpness: 0,
+          shadows: 0,
+          midtones: 0,
+          highlights: 0,
+          rotation: 0,
+          scale: 100,
+          selectedPreset: 'none'
+        });
+      } else {
+        setError('Failed to upscale image. Please try again.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.message && err.message.includes("Requested entity was not found")) {
+        setError('API Key error. Please select a valid API key.');
+        if ((window as any).aistudio && (window as any).aistudio.openSelectKey) {
+          await (window as any).aistudio.openSelectKey();
+        }
+      } else {
+        setError('An error occurred while upscaling the image.');
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAIEnhance = () => {
+    applyAIEffect("Enhance this image. Improve the overall image quality, color, and lighting. Make it look professional, vibrant, and well-lit while keeping the exact same subject and composition.");
   };
 
   const handleAIAdjust = (type: string) => {
@@ -736,14 +984,17 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
   };
 
   const ART_STYLES = [
+    { id: 'cartoon', label: 'Cartoon', icon: '🖍️' },
+    { id: '3d-toon', label: '3D TOON', icon: '🧸' },
+    { id: 'pixar-style', label: 'PIXAR STYLE', icon: '🎬' },
+    { id: 'emoji-me', label: 'EMOJI ME', icon: '😀' },
+    { id: 'cinematic', label: 'Cinematic', icon: '🎥' },
+    { id: 'anime', label: 'Anime', icon: '✨' },
     { id: 'watercolor', label: 'Watercolor', icon: '🎨' },
     { id: 'cyberpunk', label: 'Cyberpunk', icon: '🌆' },
-    { id: 'anime', label: 'Anime', icon: '✨' },
     { id: 'oil-painting', label: 'Oil Painting', icon: '🖼️' },
     { id: 'sketch', label: 'Pencil Sketch', icon: '✏️' },
-    { id: '3d-render', label: '3D Render', icon: '🧊' },
     { id: 'pixel-art', label: 'Pixel Art', icon: '👾' },
-    { id: 'cinematic', label: 'Cinematic', icon: '🎬' },
   ];
 
   const PRESETS = [
@@ -927,23 +1178,28 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                 'aspect-square'
               }`}>
                 {isCropping ? (
-                  <ReactCrop
-                    crop={crop}
-                    onChange={(_, percentCrop) => setCrop(percentCrop)}
-                    onComplete={(c) => setCompletedCrop(c)}
-                    className="w-full h-full"
-                  >
-                    <img 
-                      ref={imgRef}
-                      src={generatedImage} 
-                      alt="Generated AI Photo" 
-                      className="w-full h-full object-cover" 
-                      style={{
-                        filter: `brightness(${brightness}%) contrast(${contrast}%) hue-rotate(${hue}deg) saturate(${saturation}%) ${sharpness > 0 ? 'url(#sharpen-filter)' : ''} url(#color-balance-filter) ${PRESETS.find(p => p.id === selectedPreset)?.filter || ''}`,
-                        transform: `rotate(${rotation}deg) scale(${scale / 100})`,
-                      }}
-                    />
-                  </ReactCrop>
+                  <div className="w-full h-full overflow-auto">
+                    <div style={{ width: `${scale}%`, height: `${scale}%`, transformOrigin: 'top left', transition: 'width 0.2s, height 0.2s' }}>
+                      <ReactCrop
+                        crop={crop}
+                        onChange={(_, percentCrop) => setCrop(percentCrop)}
+                        onComplete={(c) => setCompletedCrop(c)}
+                        aspect={cropAspectRatio}
+                        className="w-full h-full"
+                      >
+                        <img 
+                          ref={imgRef}
+                          src={generatedImage} 
+                          alt="Generated AI Photo" 
+                          className="w-full h-full object-cover" 
+                          style={{
+                            filter: `brightness(${brightness}%) contrast(${contrast}%) hue-rotate(${hue}deg) saturate(${saturation}%) ${sharpness > 0 ? 'url(#sharpen-filter)' : ''} url(#color-balance-filter) ${PRESETS.find(p => p.id === selectedPreset)?.filter || ''}`,
+                            transform: `rotate(${rotation}deg)`,
+                          }}
+                        />
+                      </ReactCrop>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <img 
@@ -1011,6 +1267,19 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                       <span className="hidden sm:inline">Remove BG</span>
                     </button>
                     <button 
+                      onClick={handleAIEnhance}
+                      disabled={isGenerating}
+                      className="text-xs bg-blue-500/20 hover:bg-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-blue-400 transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
+                      title="AI Enhance - Improve image quality, color, and lighting"
+                    >
+                      {isGenerating ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Wand2 size={14} />
+                      )}
+                      <span className="hidden sm:inline">AI Enhance</span>
+                    </button>
+                    <button 
                       onClick={handleAIFlash}
                       disabled={isGenerating}
                       className="text-xs bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-amber-400 transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
@@ -1022,6 +1291,19 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                         <Zap size={14} />
                       )}
                       <span className="hidden sm:inline">AI Flash</span>
+                    </button>
+                    <button 
+                      onClick={handleAIUpscale}
+                      disabled={isGenerating}
+                      className="text-xs bg-emerald-500/20 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-400 transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
+                      title="AI Upscale - Increase resolution and detail"
+                    >
+                      {isGenerating ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Maximize size={14} />
+                      )}
+                      <span className="hidden sm:inline">AI Upscale</span>
                     </button>
                     <div className="w-px h-4 bg-white/10 mx-1"></div>
                     <button 
@@ -1048,6 +1330,34 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                     </button>
                   </div>
                 </div>
+
+                {isCropping && (
+                  <div className="pt-2 pb-1 border-t border-white/5">
+                    <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">Crop Aspect Ratio</h5>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                      {[
+                        { id: undefined, label: 'Free' },
+                        { id: 1, label: '1:1' },
+                        { id: 16/9, label: '16:9' },
+                        { id: 9/16, label: '9:16' },
+                        { id: 4/3, label: '4:3' },
+                        { id: 3/4, label: '3:4' },
+                      ].map((ar, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCropAspectRatio(ar.id)}
+                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                            cropAspectRatio === ar.id
+                              ? 'bg-blue-500/20 text-blue-400 border-blue-500/50'
+                              : 'bg-[#2A2A2A] text-slate-400 border-transparent hover:bg-[#333]'
+                          }`}
+                        >
+                          {ar.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <div className="pt-2 pb-1 border-t border-white/5">
