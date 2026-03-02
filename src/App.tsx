@@ -476,6 +476,81 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
     }
   };
 
+  const applyAIEffect = async (promptText: string) => {
+    if (!generatedImage) return;
+    setIsGenerating(true);
+    setError(null);
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: (import.meta as any).env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY });
+      
+      let base64Data = '';
+      let mimeType = 'image/png';
+      
+      if (generatedImage.startsWith('data:')) {
+        base64Data = generatedImage.split(',')[1];
+        mimeType = generatedImage.split(';')[0].split(':')[1];
+      } else if (generatedImage.startsWith('blob:')) {
+        const response = await fetch(generatedImage);
+        const blob = await response.blob();
+        mimeType = blob.type;
+        base64Data = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+          reader.readAsDataURL(blob);
+        }) as string;
+      }
+      
+      const parts = [
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        },
+        { text: promptText }
+      ];
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: { parts },
+        config: {
+          imageConfig: {
+            aspectRatio: aspectRatio,
+          }
+        }
+      });
+      
+      let imageUrl = null;
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const base64EncodeString = part.inlineData.data;
+          imageUrl = `data:image/png;base64,${base64EncodeString}`;
+          break;
+        }
+      }
+      
+      if (imageUrl) {
+        setGeneratedImage(imageUrl);
+      } else {
+        setError('Failed to apply effect. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('An error occurred while applying the effect.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const applyAIStyle = (styleName: string) => {
+    applyAIEffect(`Redraw this exact image in a highly detailed ${styleName} art style. Maintain the original composition and subject matter.`);
+  };
+
+  const handleAIFlash = () => {
+    applyAIEffect("Enhance this image with a bright camera flash effect. Make the lighting pop, increase clarity, and give it a professional studio flash photography look while keeping the exact same subject and composition.");
+  };
+
   const applyCrop = () => {
     if (!completedCrop || !imgRef.current) return;
     
@@ -522,6 +597,17 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
       setIsRemovingBg(false);
     }
   };
+
+  const ART_STYLES = [
+    { id: 'watercolor', label: 'Watercolor', icon: '🎨' },
+    { id: 'cyberpunk', label: 'Cyberpunk', icon: '🌆' },
+    { id: 'anime', label: 'Anime', icon: '✨' },
+    { id: 'oil-painting', label: 'Oil Painting', icon: '🖼️' },
+    { id: 'sketch', label: 'Pencil Sketch', icon: '✏️' },
+    { id: '3d-render', label: '3D Render', icon: '🧊' },
+    { id: 'pixel-art', label: 'Pixel Art', icon: '👾' },
+    { id: 'cinematic', label: 'Cinematic', icon: '🎬' },
+  ];
 
   const PRESETS = [
     { id: 'none', label: 'None', filter: '' },
@@ -783,6 +869,19 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                       )}
                       <span className="hidden sm:inline">Remove BG</span>
                     </button>
+                    <button 
+                      onClick={handleAIFlash}
+                      disabled={isGenerating}
+                      className="text-xs bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-amber-400 transition-colors px-3 py-1.5 rounded-lg flex items-center gap-1 font-medium"
+                      title="AI Flash"
+                    >
+                      {isGenerating ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Zap size={14} />
+                      )}
+                      <span className="hidden sm:inline">AI Flash</span>
+                    </button>
                     <div className="w-px h-4 bg-white/10 mx-1"></div>
                     <button 
                       onClick={() => { setBrightness(100); setContrast(100); setHue(0); setSaturation(100); setSharpness(0); setShadows(0); setMidtones(0); setHighlights(0); setScale(100); setRotation(0); setSelectedPreset('none'); }}
@@ -809,6 +908,23 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
                 </div>
 
                 <div className="space-y-4">
+                  <div className="pt-2 pb-1 border-t border-white/5">
+                    <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">AI Art Styles</h5>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                      {ART_STYLES.map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => applyAIStyle(s.label)}
+                          disabled={isGenerating}
+                          className="flex-shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[80px]"
+                        >
+                          <span className="text-xl">{s.icon}</span>
+                          <span className="text-[10px] font-bold text-slate-300">{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="pt-2 pb-1 border-t border-white/5">
                     <h5 className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">AI Filter Presets</h5>
                     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
