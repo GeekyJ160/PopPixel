@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Signal, Wifi, Battery, Edit3, Film, Sparkles, ChevronUp, ChevronDown, ChevronRight, Home, Wand2, Compass, User, Bot, History, Zap, UserCheck, Expand, X, Loader2, Download, ImagePlus, RotateCcw, RotateCw, Sun, Contrast, Crop, Check, Scissors, Palette, Droplets, Activity, Moon, SunMedium, SunDim } from 'lucide-react';
+import { Signal, Wifi, Battery, Edit3, Film, Sparkles, ChevronUp, ChevronDown, ChevronRight, Home, Wand2, Compass, User, Bot, History, Zap, UserCheck, Expand, X, Loader2, Download, ImagePlus, RotateCcw, RotateCw, Sun, Contrast, Crop, Check, Scissors, Palette, Droplets, Activity, Moon, SunMedium, SunDim, Ban } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { motion, AnimatePresence } from 'motion/react';
 import ReactCrop, { type Crop as ReactCropType } from 'react-image-crop';
@@ -435,6 +435,22 @@ const Slider = ({
   );
 };
 
+const BODY_ADJUSTMENTS = {
+  breast: [
+    { id: 'none', label: 'None', icon: <Ban size={24} /> },
+    { id: 'natural', label: 'Natural', icon: <User size={24} /> },
+    { id: 'teardrop', label: 'Teardrop', icon: <User size={24} /> },
+    { id: 'round', label: 'Round', icon: <User size={24} /> },
+    { id: 'full', label: 'Full', icon: <User size={24} /> },
+    { id: 'side_set', label: 'Side Set', icon: <User size={24} /> },
+  ],
+  butt: [
+    { id: 'none', label: 'None', icon: <Ban size={24} /> },
+    { id: 'peach', label: 'Peach', icon: <User size={24} /> },
+    { id: 'bubble', label: 'Bubble', icon: <User size={24} /> },
+  ]
+};
+
 const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen: boolean, onClose: () => void, initialPrompt?: string, initialImage?: { data: string, mimeType: string, url: string } | null }) => {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -443,6 +459,8 @@ const AIPhotoModal = ({ isOpen, onClose, initialPrompt, initialImage }: { isOpen
   const [referenceImage, setReferenceImage] = useState<{ data: string, mimeType: string, url: string } | null>(null);
   const [style, setStyle] = useState('photorealistic');
   const [aspectRatio, setAspectRatio] = useState('1:1');
+  const [activeBodyTab, setActiveBodyTab] = useState<'breast' | 'butt'>('breast');
+  const [selectedBodyAdjustment, setSelectedBodyAdjustment] = useState<string>('none');
   
   useEffect(() => {
     if (isOpen) {
